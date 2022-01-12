@@ -1,0 +1,59 @@
+#include <msp430.h>
+#define MCLK_FREQ_MHZ 8  
+
+int main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;                     // Stop WDT
+    
+    // Configure GPIO
+    P1DIR |= BIT0;                                // Set Pin as output
+    P1OUT |= BIT0;
+    P1SEL0 |= BIT6 | BIT7; //
+    // Configure GPIO
+     //Init_GPIO();
+    __bis_SR_register(SCG0);                // Disable FLL
+      CSCTL3 = SELREF__REFOCLK;               // Set REFO as FLL reference source
+      CSCTL1 = DCOFTRIMEN_1 | DCOFTRIM0 | DCOFTRIM1 | DCORSEL_3;// DCOFTRIM=3, DCO Range = 1MHz
+      CSCTL2 = FLLD_0 + 30;                   // DCODIV = 1MHz
+      __delay_cycles(3);
+      __bic_SR_register(SCG0);                // Enable FLL
+      CSCTL4 = SELMS__DCOCLKDIV | SELA__REFOCLK; // set default REFO(~32768Hz) as ACLK source, ACLK = 32768Hz
+                                                 // default DCODIV as MCLK and SMCLK source
+
+    
+    // Disable the GPIO power-on default high-impedance mode to activate
+    // previously configured port settings
+    
+    PM5CTL0 &= ~LOCKLPM5;
+    
+    // Timer1_B3 setup
+    TB1CCTL0 = CCIE;                              // TBCCR0 interrupt enabled
+    TB1CCR0 = 50000;
+    TB1CTL = TBSSEL_2| MC_1;                     // ACLK, up mode
+    
+    __bis_SR_register(LPM3_bits | GIE);           // Enter LPM3 w/ interrupt
+}
+
+// Timer B1 interrupt service routine
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector = TIMER1_B0_VECTOR
+__interrupt void Timer1_B0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(TIMER1_B0_VECTOR))) Timer1_B0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    P1OUT ^= BIT0;
+    char message[]="LED is ON"
+    int position;
+    int i,j;
+    while(1)
+    {
+        for(position=0;position<size0f(message);position++)
+        {
+            UCA0TXBUF= message[position];
+            for(i=0;i<100;i++){}
+        }
+    }
+}
